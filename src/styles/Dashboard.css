@@ -1,0 +1,97 @@
+.dashboard {
+ padding: 2rem;
+ background: linear-gradient(to bottom right, #eaf3ff, #f9fbfc);
+ min-height: 100vh;
+ font-family: 'Segoe UI', Tahoma, sans-serif;
+ display: flex;
+ flex-direction: column;
+ gap: 2rem;
+}
+
+.dashboard h1 {
+ font-size: 2.5rem;
+ color: #002d62;
+ margin-bottom: 1rem;
+}
+
+/* 🟦 Carduri individuale */
+.card {
+ background: #ffffff;
+ border-radius: 16px;
+ box-shadow: 0 4px 16px rgba(0, 45, 98, 0.1);
+ padding: 1.5rem;
+ transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.card:hover {
+ transform: translateY(-4px);
+ box-shadow: 0 10px 24px rgba(0, 45, 98, 0.15);
+}
+
+/* 🔢 Secțiunea de statistici */
+.stats-grid {
+ display: grid;
+ grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+ gap: 1.5rem;
+}
+
+.stat-item {
+ display: flex;
+ align-items: center;
+ gap: 1rem;
+}
+
+.stat-icon {
+ font-size: 2.5rem;
+ color: #3399ff;
+}
+
+.stat-details {
+ display: flex;
+ flex-direction: column;
+}
+
+.stat-title {
+ font-weight: 600;
+ font-size: 0.95rem;
+ color: #444;
+}
+
+.stat-number {
+ font-size: 1.8rem;
+ font-weight: bold;
+ color: #001a33;
+}
+
+/* 📑 Celelalte secțiuni */
+.sections {
+ display: grid;
+ grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+ gap: 2rem;
+}
+
+.card-title {
+ font-size: 1.25rem;
+ font-weight: 600;
+ margin-bottom: 1rem;
+ color: #002d62;
+ border-bottom: 2px solid #3399ff;
+ padding-bottom: 0.4rem;
+}
+
+.card ul {
+ list-style: none;
+ padding: 0;
+ margin: 0;
+}
+
+.card li {
+ padding: 0.5rem 0;
+ border-bottom: 1px solid #e2e8f0;
+ font-size: 1rem;
+ color: #333;
+}
+
+.card li:last-child {
+ border-bottom: none;
+}
