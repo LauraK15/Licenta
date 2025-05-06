@@ -1,55 +1,49 @@
 .sidebar {
  width: 250px;
- /* sau cât vrei */
  min-height: 100vh;
- background-color: #f9f9f9;
+ background: linear-gradient(to bottom right, #eaf3ff, #f9fbfc);
  padding: 20px;
- box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+ box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
  position: relative;
+ font-family: 'Segoe UI', Tahoma, sans-serif;
 }
 
 .logo {
  margin-bottom: 30px;
  font-weight: bold;
+ font-size: 1.5rem;
+ color: #002d62;
+ text-align: center;
 }
 
 .sidebar ul {
  list-style: none;
  padding: 0;
+ margin: 0;
 }
 
 .sidebar li {
- margin: 15px 0;
- display: flex;
- align-items: center;
- gap: 10px;
-}
-
-.sidebar li a {
- text-decoration: none;
- color: black;
+ margin: 12px 0;
 }
 
 .sidebar a {
  display: flex;
  align-items: center;
  gap: 10px;
- color: #333;
+ color: #002d62;
  text-decoration: none;
  font-weight: 500;
- padding: 8px;
- border-radius: 8px;
- transition: background-color 0.2s ease;
+ padding: 10px 12px;
+ border-radius: 10px;
+ transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .sidebar a:hover {
- background-color: #e6e6e6;
-}
-
-.sidebar li:hover {
- color: #7c3aed;
+ background-color: #d6eaff;
+ color: #003366;
 }
 
 .sidebar li svg {
- margin-right: 10px;
+ margin-right: 8px;
+ font-size: 1.1rem;
 }

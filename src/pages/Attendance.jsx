@@ -1,212 +1,145 @@
 import React, { useState } from "react";
+import Calendar from "react-calendar";
+import "react-calendar/dist/Calendar.css";
 import "../styles/Attendance.css";
 
 const Attendance = () => {
-  const [attendanceList, setAttendanceList] = useState([
-    { name: "Ion Popescu", date: "2025-04-24", status: "Present" },
-    { name: "Maria Ionescu", date: "2025-04-24", status: "Absent" },
-    { name: "Andrei Pavel", date: "2025-04-24", status: "Late" },
+  const [employees, setEmployees] = useState([
+    {
+      name: "Ion Popescu",
+      attendance: ["2025-05-01", "2025-05-03"],
+      absence: ["2025-05-04"],
+      freeDays: ["2025-05-06"]
+    },
+    {
+      name: "Maria Ionescu",
+      attendance: ["2025-05-02", "2025-05-03"],
+      absence: ["2025-05-05"],
+      freeDays: []
+    }
   ]);
 
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [newAttendance, setNewAttendance] = useState({
-    name: "",
-    date: "",
-    status: "",
-  });
-  const [errors, setErrors] = useState({});
-  const [editIndex, setEditIndex] = useState(null);
+  const [newName, setNewName] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedEmployeeIndex, setSelectedEmployeeIndex] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [showTypeSelector, setShowTypeSelector] = useState(false);
 
-  const validateForm = () => {
-    const newErrors = {};
-    const { name, date, status } = newAttendance;
-
-    if (!name.trim()) newErrors.name = "Numele este obligatoriu.";
-    if (!date.trim()) newErrors.date = "Data este obligatorie.";
-    if (!status.trim()) newErrors.status = "Statusul este obligatoriu.";
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const formatDate = (date) => {
+    const offset = date.getTimezoneOffset();
+    const localDate = new Date(date.getTime() - offset * 60 * 1000);
+    return localDate.toISOString().split("T")[0];
   };
 
-  const handleChange = (e) => {
-    setNewAttendance({ ...newAttendance, [e.target.name]: e.target.value });
+  const tileClassName = (date, employee) => {
+    const formatted = formatDate(date);
+    if (employee.attendance.includes(formatted)) return "present";
+    if (employee.absence.includes(formatted)) return "absent";
+    if (employee.freeDays.includes(formatted)) return "free";
+    return null;
   };
 
-  const handleAddAttendance = () => {
-    if (!validateForm()) return;
-
-    setAttendanceList([...attendanceList, newAttendance]);
-    setNewAttendance({ name: "", date: "", status: "" });
-    setErrors({});
-    setShowAddModal(false);
+  const handleAddEmployee = () => {
+    if (!newName.trim()) return;
+    const newEmployee = {
+      name: newName.trim(),
+      attendance: [],
+      absence: [],
+      freeDays: []
+    };
+    setEmployees(prev => [...prev, newEmployee]);
+    setNewName("");
   };
 
-  const handleUpdateAttendance = () => {
-    if (!validateForm()) return;
-
-    const updatedList = [...attendanceList];
-    updatedList[editIndex] = newAttendance;
-    setAttendanceList(updatedList);
-    setNewAttendance({ name: "", date: "", status: "" });
-    setErrors({});
-    setShowEditModal(false);
+  const handleAddDate = (index, type) => {
+    const date = prompt(`Introduceți data (${type}) în format YYYY-MM-DD:`);
+    if (!date) return;
+    const updated = [...employees];
+    if (!updated[index][type].includes(date)) {
+      updated[index][type].push(date);
+    }
+    setEmployees(updated);
   };
 
-  const handleDelete = (index) => {
-    const updatedList = [...attendanceList];
-    updatedList.splice(index, 1);
-    setAttendanceList(updatedList);
+  const handleDayClick = (date, employeeIndex) => {
+    setSelectedDate(date);
+    setSelectedEmployeeIndex(employeeIndex);
+    setShowTypeSelector(true);
   };
 
-  const handleEdit = (index) => {
-    setEditIndex(index);
-    setNewAttendance(attendanceList[index]);
-    setErrors({});
-    setShowEditModal(true);
+  const handleSelectType = (type) => {
+    const formatted = formatDate(selectedDate);
+    const updated = [...employees];
+    const types = ["attendance", "absence", "freeDays"];
+
+    types.forEach(t => {
+      updated[selectedEmployeeIndex][t] = updated[selectedEmployeeIndex][t].filter(d => d !== formatted);
+    });
+
+    if (type === "attendance") updated[selectedEmployeeIndex].attendance.push(formatted);
+    if (type === "absence") updated[selectedEmployeeIndex].absence.push(formatted);
+    if (type === "freeDays") updated[selectedEmployeeIndex].freeDays.push(formatted);
+
+    setEmployees(updated);
+    setShowTypeSelector(false);
   };
+
+  const filteredEmployees = employees.filter((emp) =>
+    emp.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="attendance-page">
-      <div className="attendance-header">
-        <h1>Attendance</h1>
-        <div className="header-actions">
-          <input
-            type="text"
-            placeholder="Caută angajat..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="search-input"
-          />
-          <button className="add-button" onClick={() => setShowAddModal(true)}>
-            + Add Attendance
-          </button>
-        </div>
+      <h1>Attendance</h1>
+
+      <div className="controls-bar">
+        <input
+          type="text"
+          placeholder="Nume angajat"
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+        />
+        <button onClick={handleAddEmployee}>+ Add Employee</button>
+        <input
+          type="text"
+          placeholder="Caută angajat..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
       </div>
 
-      {/* Modal Add Attendance */}
-      {showAddModal && (
+      <div className="attendance-grid">
+        {filteredEmployees.map((employee, index) => (
+          <div key={index} className="employee-card">
+            <h2>{employee.name}</h2>
+            <Calendar
+              onClickDay={(date) => handleDayClick(date, employees.indexOf(employee))}
+              tileClassName={({ date, view }) =>
+                view === "month" ? tileClassName(date, employee) : null
+              }
+            />
+            <div className="btn-group">
+              <button onClick={() => handleAddDate(employees.indexOf(employee), "attendance")}>+ Prezent</button>
+              <button onClick={() => handleAddDate(employees.indexOf(employee), "absence")}>+ Absent</button>
+              <button onClick={() => handleAddDate(employees.indexOf(employee), "freeDays")}>+ Zi Liberă</button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {showTypeSelector && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <h2>Add Attendance</h2>
-            <input
-              type="text"
-              name="name"
-              placeholder="Nume angajat"
-              value={newAttendance.name}
-              onChange={handleChange}
-            />
-            {errors.name && <p className="error-text">{errors.name}</p>}
-
-            <input
-              type="date"
-              name="date"
-              value={newAttendance.date}
-              onChange={handleChange}
-            />
-            {errors.date && <p className="error-text">{errors.date}</p>}
-
-            <select name="status" value={newAttendance.status} onChange={handleChange}>
-              <option value="">Selectează status</option>
-              <option value="Present">Present</option>
-              <option value="Absent">Absent</option>
-              <option value="Late">Late</option>
-            </select>
-            {errors.status && <p className="error-text">{errors.status}</p>}
-
+            <h2>Selectează tipul pentru {formatDate(selectedDate)}</h2>
             <div className="modal-buttons">
-              <button className="save-button" onClick={handleAddAttendance}>
-                Save
-              </button>
-              <button className="cancel-button" onClick={() => setShowAddModal(false)}>
-                Cancel
-              </button>
+              <button onClick={() => handleSelectType("attendance")}>Prezent</button>
+              <button onClick={() => handleSelectType("absence")}>Absent</button>
+              <button onClick={() => handleSelectType("freeDays")}>Zi Liberă</button>
+              <button className="cancel-button" onClick={() => setShowTypeSelector(false)}>Anulează</button>
             </div>
           </div>
         </div>
       )}
-
-      {/* Modal Edit Attendance */}
-      {showEditModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h2>Edit Attendance</h2>
-            <input
-              type="text"
-              name="name"
-              placeholder="Nume angajat"
-              value={newAttendance.name}
-              onChange={handleChange}
-            />
-            {errors.name && <p className="error-text">{errors.name}</p>}
-
-            <input
-              type="date"
-              name="date"
-              value={newAttendance.date}
-              onChange={handleChange}
-            />
-            {errors.date && <p className="error-text">{errors.date}</p>}
-
-            <select name="status" value={newAttendance.status} onChange={handleChange}>
-              <option value="">Selectează status</option>
-              <option value="Present">Present</option>
-              <option value="Absent">Absent</option>
-              <option value="Late">Late</option>
-            </select>
-            {errors.status && <p className="error-text">{errors.status}</p>}
-
-            <div className="modal-buttons">
-              <button className="save-button" onClick={handleUpdateAttendance}>
-                Save Changes
-              </button>
-              <button className="cancel-button" onClick={() => setShowEditModal(false)}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Tabel Attendance */}
-      <div className="attendance-table-container">
-        <table className="attendance-table">
-          <thead>
-            <tr>
-              <th>Nume</th>
-              <th>Data</th>
-              <th>Status</th>
-              <th>Acțiuni</th>
-            </tr>
-          </thead>
-          <tbody>
-            {attendanceList
-              .filter((item) =>
-                Object.values(item)
-                  .join(" ")
-                  .toLowerCase()
-                  .includes(searchTerm.toLowerCase())
-              )
-              .map((item, index) => (
-                <tr key={index}>
-                  <td>{item.name}</td>
-                  <td>{item.date}</td>
-                  <td>{item.status}</td>
-                  <td className="action-buttons">
-                    <button className="edit-button" onClick={() => handleEdit(index)}>
-                      ✏️
-                    </button>
-                    <button className="delete-button" onClick={() => handleDelete(index)}>
-                      🗑️
-                    </button>
-                  </td>
-                </tr>
-              ))}
-          </tbody>
-        </table>
-      </div>
     </div>
   );
 };
