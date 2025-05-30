@@ -1,12 +1,17 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "../styles/Candidates.css";
+import { db } from "../helper/firebaseConfig.js";
+import {
+  collection,
+  addDoc,
+  getDocs,
+  updateDoc,
+  deleteDoc,
+  doc,
+} from "firebase/firestore";
 
 const Candidates = () => {
-  const [candidatesList, setCandidatesList] = useState([
-    { name: "Andrei Popa", email: "andrei.popa@email.com", phone: "0740123456", position: "Frontend Developer", status: "Applied" },
-    { name: "Ioana Mihai", email: "ioana.mihai@email.com", phone: "0740987654", position: "HR Specialist", status: "Interviewed" },
-  ]);
-
+  const [candidatesList, setCandidatesList] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [newCandidate, setNewCandidate] = useState({
@@ -17,8 +22,18 @@ const Candidates = () => {
     status: "",
   });
   const [errors, setErrors] = useState({});
-  const [editIndex, setEditIndex] = useState(null);
+  const [editId, setEditId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+
+  const fetchCandidates = async () => {
+    const snapshot = await getDocs(collection(db, "candidates"));
+    const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    setCandidatesList(data);
+  };
+
+  useEffect(() => {
+    fetchCandidates();
+  }, []);
 
   const validateForm = () => {
     const newErrors = {};
@@ -38,35 +53,35 @@ const Candidates = () => {
     setNewCandidate({ ...newCandidate, [e.target.name]: e.target.value });
   };
 
-  const handleAddCandidate = () => {
+  const handleAddCandidate = async () => {
     if (!validateForm()) return;
 
-    setCandidatesList([...candidatesList, newCandidate]);
+    await addDoc(collection(db, "candidates"), newCandidate);
+    fetchCandidates();
     setNewCandidate({ name: "", email: "", phone: "", position: "", status: "" });
     setErrors({});
     setShowAddModal(false);
   };
 
-  const handleUpdateCandidate = () => {
+  const handleUpdateCandidate = async () => {
     if (!validateForm()) return;
 
-    const updatedList = [...candidatesList];
-    updatedList[editIndex] = newCandidate;
-    setCandidatesList(updatedList);
+    const candidateRef = doc(db, "candidates", editId);
+    await updateDoc(candidateRef, newCandidate);
+    fetchCandidates();
     setNewCandidate({ name: "", email: "", phone: "", position: "", status: "" });
     setErrors({});
     setShowEditModal(false);
   };
 
-  const handleDelete = (index) => {
-    const updatedList = [...candidatesList];
-    updatedList.splice(index, 1);
-    setCandidatesList(updatedList);
+  const handleDelete = async (id) => {
+    await deleteDoc(doc(db, "candidates", id));
+    fetchCandidates();
   };
 
-  const handleEdit = (index) => {
-    setEditIndex(index);
-    setNewCandidate(candidatesList[index]);
+  const handleEdit = (candidate) => {
+    setEditId(candidate.id);
+    setNewCandidate(candidate);
     setErrors({});
     setShowEditModal(true);
   };
@@ -89,45 +104,20 @@ const Candidates = () => {
         </div>
       </div>
 
-      {/* Modal Add Candidate */}
       {showAddModal && (
         <div className="modal-overlay">
           <div className="modal-content">
             <h2>Add Candidate</h2>
-            <input
-              type="text"
-              name="name"
-              placeholder="Nume candidat"
-              value={newCandidate.name}
-              onChange={handleChange}
-            />
+            <input type="text" name="name" placeholder="Nume candidat" value={newCandidate.name} onChange={handleChange} />
             {errors.name && <p className="error-text">{errors.name}</p>}
 
-            <input
-              type="email"
-              name="email"
-              placeholder="Email"
-              value={newCandidate.email}
-              onChange={handleChange}
-            />
+            <input type="email" name="email" placeholder="Email" value={newCandidate.email} onChange={handleChange} />
             {errors.email && <p className="error-text">{errors.email}</p>}
 
-            <input
-              type="text"
-              name="phone"
-              placeholder="Telefon"
-              value={newCandidate.phone}
-              onChange={handleChange}
-            />
+            <input type="text" name="phone" placeholder="Telefon" value={newCandidate.phone} onChange={handleChange} />
             {errors.phone && <p className="error-text">{errors.phone}</p>}
 
-            <input
-              type="text"
-              name="position"
-              placeholder="Post aplicat"
-              value={newCandidate.position}
-              onChange={handleChange}
-            />
+            <input type="text" name="position" placeholder="Post aplicat" value={newCandidate.position} onChange={handleChange} />
             {errors.position && <p className="error-text">{errors.position}</p>}
 
             <select name="status" value={newCandidate.status} onChange={handleChange}>
@@ -140,56 +130,27 @@ const Candidates = () => {
             {errors.status && <p className="error-text">{errors.status}</p>}
 
             <div className="modal-buttons">
-              <button className="save-button" onClick={handleAddCandidate}>
-                Save
-              </button>
-              <button className="cancel-button" onClick={() => setShowAddModal(false)}>
-                Cancel
-              </button>
+              <button className="save-button" onClick={handleAddCandidate}>Save</button>
+              <button className="cancel-button" onClick={() => setShowAddModal(false)}>Cancel</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal Edit Candidate */}
       {showEditModal && (
         <div className="modal-overlay">
           <div className="modal-content">
             <h2>Edit Candidate</h2>
-            <input
-              type="text"
-              name="name"
-              placeholder="Nume candidat"
-              value={newCandidate.name}
-              onChange={handleChange}
-            />
+            <input type="text" name="name" placeholder="Nume candidat" value={newCandidate.name} onChange={handleChange} />
             {errors.name && <p className="error-text">{errors.name}</p>}
 
-            <input
-              type="email"
-              name="email"
-              placeholder="Email"
-              value={newCandidate.email}
-              onChange={handleChange}
-            />
+            <input type="email" name="email" placeholder="Email" value={newCandidate.email} onChange={handleChange} />
             {errors.email && <p className="error-text">{errors.email}</p>}
 
-            <input
-              type="text"
-              name="phone"
-              placeholder="Telefon"
-              value={newCandidate.phone}
-              onChange={handleChange}
-            />
+            <input type="text" name="phone" placeholder="Telefon" value={newCandidate.phone} onChange={handleChange} />
             {errors.phone && <p className="error-text">{errors.phone}</p>}
 
-            <input
-              type="text"
-              name="position"
-              placeholder="Post aplicat"
-              value={newCandidate.position}
-              onChange={handleChange}
-            />
+            <input type="text" name="position" placeholder="Post aplicat" value={newCandidate.position} onChange={handleChange} />
             {errors.position && <p className="error-text">{errors.position}</p>}
 
             <select name="status" value={newCandidate.status} onChange={handleChange}>
@@ -202,18 +163,13 @@ const Candidates = () => {
             {errors.status && <p className="error-text">{errors.status}</p>}
 
             <div className="modal-buttons">
-              <button className="save-button" onClick={handleUpdateCandidate}>
-                Save Changes
-              </button>
-              <button className="cancel-button" onClick={() => setShowEditModal(false)}>
-                Cancel
-              </button>
+              <button className="save-button" onClick={handleUpdateCandidate}>Save Changes</button>
+              <button className="cancel-button" onClick={() => setShowEditModal(false)}>Cancel</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Tabel Candidates */}
       <div className="candidates-table-container">
         <table className="candidates-table">
           <thead>
@@ -234,20 +190,16 @@ const Candidates = () => {
                   .toLowerCase()
                   .includes(searchTerm.toLowerCase())
               )
-              .map((item, index) => (
-                <tr key={index}>
+              .map((item) => (
+                <tr key={item.id}>
                   <td>{item.name}</td>
                   <td>{item.email}</td>
                   <td>{item.phone}</td>
                   <td>{item.position}</td>
                   <td>{item.status}</td>
                   <td className="action-buttons">
-                    <button className="edit-button" onClick={() => handleEdit(index)}>
-                      ✏️
-                    </button>
-                    <button className="delete-button" onClick={() => handleDelete(index)}>
-                      🗑️
-                    </button>
+                    <button className="edit-button" onClick={() => handleEdit(item)}>✏️</button>
+                    <button className="delete-button" onClick={() => handleDelete(item.id)}>🗑️</button>
                   </td>
                 </tr>
               ))}

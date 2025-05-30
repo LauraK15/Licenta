@@ -1,14 +1,12 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import "../styles/Employees.css";
+import { collection, addDoc, getDocs, deleteDoc, updateDoc, doc } from "firebase/firestore";
+import { db } from "../helper/firebaseConfig.js";
+import { Toaster, toast } from "react-hot-toast";
 
 const Employees = () => {
-  const [employeeList, setEmployeeList] = useState([
-    { name: "Ion Popescu", position: "HR Specialist", department: "Resurse Umane", email: "ion.popescu@email.com" },
-    { name: "Maria Ionescu", position: "Software Engineer", department: "IT", email: "maria.ionescu@email.com" },
-    { name: "Andrei Pavel", position: "Marketing Manager", department: "Marketing", email: "andrei.pavel@email.com" },
-    { name: "Ana Georgescu", position: "Accountant", department: "Financiar", email: "ana.georgescu@email.com" },
-  ]);
-
+  const [employeeList, setEmployeeList] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [newEmployee, setNewEmployee] = useState({
@@ -20,6 +18,24 @@ const Employees = () => {
   const [errors, setErrors] = useState({});
   const [editIndex, setEditIndex] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "employees"));
+        const data = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setEmployeeList(data);
+      } catch (error) {
+        console.error("Eroare la citire angajați:", error);
+        toast.error("Eroare la încărcarea angajaților.");
+      }
+    };
+
+    fetchEmployees();
+  }, []);
 
   const handleChange = (e) => {
     setNewEmployee({ ...newEmployee, [e.target.name]: e.target.value });
@@ -45,41 +61,66 @@ const Employees = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleAddEmployee = () => {
+  const handleAddEmployee = async () => {
     if (!validateForm()) return;
 
-    setEmployeeList([...employeeList, newEmployee]);
-    setNewEmployee({ name: "", position: "", department: "", email: "" });
-    setErrors({});
-    setShowAddModal(false);
+    try {
+      const docRef = await addDoc(collection(db, "employees"), newEmployee);
+      setEmployeeList([...employeeList, { ...newEmployee, id: docRef.id }]);
+      setNewEmployee({ name: "", position: "", department: "", email: "" });
+      setErrors({});
+      setShowAddModal(false);
+      toast.success("Angajat adăugat cu succes!");
+    } catch (error) {
+      console.error("Eroare la adăugare angajat:", error);
+      toast.error("Eroare la adăugare angajat.");
+    }
   };
 
-  const handleUpdateEmployee = () => {
+  const handleUpdateEmployee = async () => {
     if (!validateForm()) return;
 
-    const updatedList = [...employeeList];
-    updatedList[editIndex] = newEmployee;
-    setEmployeeList(updatedList);
-    setNewEmployee({ name: "", position: "", department: "", email: "" });
-    setErrors({});
-    setShowEditModal(false);
+    try {
+      const { id, ...dataWithoutId } = newEmployee;
+      await updateDoc(doc(db, "employees", id), dataWithoutId);
+
+      const updatedList = [...employeeList];
+      updatedList[editIndex] = newEmployee;
+      setEmployeeList(updatedList);
+      setNewEmployee({ name: "", position: "", department: "", email: "" });
+      setErrors({});
+      setShowEditModal(false);
+      toast.success("Angajat actualizat cu succes!");
+    } catch (error) {
+      console.error("Eroare la actualizarea angajatului:", error);
+      toast.error("Eroare la actualizare angajat.");
+    }
   };
 
-  const handleDelete = (index) => {
-    const updatedList = [...employeeList];
-    updatedList.splice(index, 1);
-    setEmployeeList(updatedList);
+  const handleDelete = async (index) => {
+    const employeeToDelete = employeeList[index];
+    try {
+      await deleteDoc(doc(db, "employees", employeeToDelete.id));
+      const updatedList = employeeList.filter((_, i) => i !== index);
+      setEmployeeList(updatedList);
+      toast.success("Angajat șters cu succes!");
+    } catch (error) {
+      console.error("Eroare la ștergerea angajatului:", error);
+      toast.error("Eroare la ștergere angajat.");
+    }
   };
 
   const handleEdit = (index) => {
+    const emp = employeeList[index];
     setEditIndex(index);
-    setNewEmployee(employeeList[index]);
+    setNewEmployee(emp);
     setErrors({});
     setShowEditModal(true);
   };
 
   return (
     <div className="employees-page">
+      <Toaster position="top-right" />
       <div className="employees-header">
         <h1>All Employees</h1>
         <div className="header-actions">
@@ -96,113 +137,46 @@ const Employees = () => {
         </div>
       </div>
 
-      {/* Modal Adaugare */}
       {showAddModal && (
         <div className="modal-overlay">
           <div className="modal-content">
             <h2>Add New Employee</h2>
-            <input
-              type="text"
-              name="name"
-              placeholder="Nume complet"
-              value={newEmployee.name}
-              onChange={handleChange}
-            />
+            <input type="text" name="name" placeholder="Nume complet" value={newEmployee.name} onChange={handleChange} />
             {errors.name && <p className="error-text">{errors.name}</p>}
-
-            <input
-              type="text"
-              name="position"
-              placeholder="Poziție"
-              value={newEmployee.position}
-              onChange={handleChange}
-            />
+            <input type="text" name="position" placeholder="Poziție" value={newEmployee.position} onChange={handleChange} />
             {errors.position && <p className="error-text">{errors.position}</p>}
-
-            <input
-              type="text"
-              name="department"
-              placeholder="Departament"
-              value={newEmployee.department}
-              onChange={handleChange}
-            />
+            <input type="text" name="department" placeholder="Departament" value={newEmployee.department} onChange={handleChange} />
             {errors.department && <p className="error-text">{errors.department}</p>}
-
-            <input
-              type="email"
-              name="email"
-              placeholder="Email"
-              value={newEmployee.email}
-              onChange={handleChange}
-            />
+            <input type="email" name="email" placeholder="Email" value={newEmployee.email} onChange={handleChange} />
             {errors.email && <p className="error-text">{errors.email}</p>}
-
             <div className="modal-buttons">
-              <button className="save-button" onClick={handleAddEmployee}>
-                Save
-              </button>
-              <button className="cancel-button" onClick={() => setShowAddModal(false)}>
-                Cancel
-              </button>
+              <button className="save-button" onClick={handleAddEmployee}>Save</button>
+              <button className="cancel-button" onClick={() => setShowAddModal(false)}>Cancel</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal Editare */}
       {showEditModal && (
         <div className="modal-overlay">
           <div className="modal-content">
             <h2>Edit Employee</h2>
-            <input
-              type="text"
-              name="name"
-              placeholder="Nume complet"
-              value={newEmployee.name}
-              onChange={handleChange}
-            />
+            <input type="text" name="name" placeholder="Nume complet" value={newEmployee.name} onChange={handleChange} />
             {errors.name && <p className="error-text">{errors.name}</p>}
-
-            <input
-              type="text"
-              name="position"
-              placeholder="Poziție"
-              value={newEmployee.position}
-              onChange={handleChange}
-            />
+            <input type="text" name="position" placeholder="Poziție" value={newEmployee.position} onChange={handleChange} />
             {errors.position && <p className="error-text">{errors.position}</p>}
-
-            <input
-              type="text"
-              name="department"
-              placeholder="Departament"
-              value={newEmployee.department}
-              onChange={handleChange}
-            />
+            <input type="text" name="department" placeholder="Departament" value={newEmployee.department} onChange={handleChange} />
             {errors.department && <p className="error-text">{errors.department}</p>}
-
-            <input
-              type="email"
-              name="email"
-              placeholder="Email"
-              value={newEmployee.email}
-              onChange={handleChange}
-            />
+            <input type="email" name="email" placeholder="Email" value={newEmployee.email} onChange={handleChange} />
             {errors.email && <p className="error-text">{errors.email}</p>}
-
             <div className="modal-buttons">
-              <button className="save-button" onClick={handleUpdateEmployee}>
-                Save Changes
-              </button>
-              <button className="cancel-button" onClick={() => setShowEditModal(false)}>
-                Cancel
-              </button>
+              <button className="save-button" onClick={handleUpdateEmployee}>Save Changes</button>
+              <button className="cancel-button" onClick={() => setShowEditModal(false)}>Cancel</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Tabel Angajați */}
       <div className="employees-table-container">
         <table className="employees-table">
           <thead>
@@ -223,7 +197,7 @@ const Employees = () => {
                   .includes(searchTerm.toLowerCase())
               )
               .map((employee, index) => (
-                <tr key={index}>
+                <tr key={employee.id}>
                   <td>{employee.name}</td>
                   <td>{employee.position}</td>
                   <td>{employee.department}</td>
@@ -233,7 +207,7 @@ const Employees = () => {
                       ✏️
                     </button>
                     <button className="delete-button" onClick={() => handleDelete(index)}>
-                      🗑️
+                    🗑️
                     </button>
                   </td>
                 </tr>

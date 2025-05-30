@@ -1,35 +1,52 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "../styles/Jobs.css";
+import { db } from "../helper/firebaseConfig";
+import {
+  collection,
+  addDoc,
+  getDocs,
+  deleteDoc,
+  updateDoc,
+  doc
+} from "firebase/firestore";
 
 const Jobs = () => {
-  const [jobsList, setJobsList] = useState([
-    { title: "Frontend Developer", department: "IT", location: "București", jobType: "Full-time", status: "Open" },
-    { title: "HR Specialist", department: "HR", location: "Cluj", jobType: "Part-time", status: "Open" },
-  ]);
-
+  const [jobsList, setJobsList] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [newJob, setNewJob] = useState({
-    title: "",
-    department: "",
-    location: "",
-    jobType: "",
-    status: "",
-  });
+  const [newJob, setNewJob] = useState(initialJobState());
   const [errors, setErrors] = useState({});
-  const [editIndex, setEditIndex] = useState(null);
+  const [editId, setEditId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+
+  function initialJobState() {
+    return {
+      title: "",
+      department: "",
+      location: "",
+      jobType: "",
+      status: "",
+    };
+  }
+
+  const fetchJobs = async () => {
+    const snapshot = await getDocs(collection(db, "jobs"));
+    const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    setJobsList(data);
+  };
+
+  useEffect(() => {
+    fetchJobs();
+  }, []);
 
   const validateForm = () => {
     const newErrors = {};
     const { title, department, location, jobType, status } = newJob;
-
     if (!title.trim()) newErrors.title = "Titlul este obligatoriu.";
     if (!department.trim()) newErrors.department = "Departamentul este obligatoriu.";
     if (!location.trim()) newErrors.location = "Locația este obligatorie.";
     if (!jobType.trim()) newErrors.jobType = "Tipul jobului este obligatoriu.";
     if (!status.trim()) newErrors.status = "Statusul este obligatoriu.";
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -38,38 +55,43 @@ const Jobs = () => {
     setNewJob({ ...newJob, [e.target.name]: e.target.value });
   };
 
-  const handleAddJob = () => {
+  const handleAddJob = async () => {
     if (!validateForm()) return;
-
-    setJobsList([...jobsList, newJob]);
-    setNewJob({ title: "", department: "", location: "", jobType: "", status: "" });
+    const docRef = await addDoc(collection(db, "jobs"), newJob);
+    setJobsList([...jobsList, { ...newJob, id: docRef.id }]);
+    setNewJob(initialJobState());
     setErrors({});
     setShowAddModal(false);
   };
 
-  const handleUpdateJob = () => {
-    if (!validateForm()) return;
+  const handleEdit = (job) => {
+    setNewJob(job);
+    setEditId(job.id);
+    setShowEditModal(true);
+  };
 
-    const updatedList = [...jobsList];
-    updatedList[editIndex] = newJob;
+  const handleUpdateJob = async () => {
+    if (!validateForm()) return;
+    await updateDoc(doc(db, "jobs", editId), newJob);
+    const updatedList = jobsList.map((j) =>
+      j.id === editId ? { ...newJob, id: editId } : j
+    );
     setJobsList(updatedList);
-    setNewJob({ title: "", department: "", location: "", jobType: "", status: "" });
-    setErrors({});
+    setNewJob(initialJobState());
     setShowEditModal(false);
   };
 
-  const handleDelete = (index) => {
-    const updatedList = [...jobsList];
-    updatedList.splice(index, 1);
-    setJobsList(updatedList);
+  const handleDelete = async (id) => {
+    await deleteDoc(doc(db, "jobs", id));
+    setJobsList(jobsList.filter((j) => j.id !== id));
   };
 
-  const handleEdit = (index) => {
-    setEditIndex(index);
-    setNewJob(jobsList[index]);
-    setErrors({});
-    setShowEditModal(true);
-  };
+  const filteredJobs = jobsList.filter((item) =>
+    Object.values(item)
+      .join(" ")
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="jobs-page">
@@ -89,125 +111,31 @@ const Jobs = () => {
         </div>
       </div>
 
-      {/* Modal Add Job */}
+      {/* Modal Add */}
       {showAddModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h2>Add Job</h2>
-            <input
-              type="text"
-              name="title"
-              placeholder="Titlu job"
-              value={newJob.title}
-              onChange={handleChange}
-            />
-            {errors.title && <p className="error-text">{errors.title}</p>}
-
-            <input
-              type="text"
-              name="department"
-              placeholder="Departament"
-              value={newJob.department}
-              onChange={handleChange}
-            />
-            {errors.department && <p className="error-text">{errors.department}</p>}
-
-            <input
-              type="text"
-              name="location"
-              placeholder="Locație"
-              value={newJob.location}
-              onChange={handleChange}
-            />
-            {errors.location && <p className="error-text">{errors.location}</p>}
-
-            <select name="jobType" value={newJob.jobType} onChange={handleChange}>
-              <option value="">Selectează tip job</option>
-              <option value="Full-time">Full-time</option>
-              <option value="Part-time">Part-time</option>
-              <option value="Remote">Remote</option>
-            </select>
-            {errors.jobType && <p className="error-text">{errors.jobType}</p>}
-
-            <select name="status" value={newJob.status} onChange={handleChange}>
-              <option value="">Selectează status</option>
-              <option value="Open">Open</option>
-              <option value="Closed">Closed</option>
-            </select>
-            {errors.status && <p className="error-text">{errors.status}</p>}
-
-            <div className="modal-buttons">
-              <button className="save-button" onClick={handleAddJob}>
-                Save
-              </button>
-              <button className="cancel-button" onClick={() => setShowAddModal(false)}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
+        <JobModal
+          title="Add Job"
+          data={newJob}
+          errors={errors}
+          handleChange={handleChange}
+          onSave={handleAddJob}
+          onCancel={() => setShowAddModal(false)}
+        />
       )}
 
-      {/* Modal Edit Job */}
+      {/* Modal Edit */}
       {showEditModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h2>Edit Job</h2>
-            <input
-              type="text"
-              name="title"
-              placeholder="Titlu job"
-              value={newJob.title}
-              onChange={handleChange}
-            />
-            {errors.title && <p className="error-text">{errors.title}</p>}
-
-            <input
-              type="text"
-              name="department"
-              placeholder="Departament"
-              value={newJob.department}
-              onChange={handleChange}
-            />
-            {errors.department && <p className="error-text">{errors.department}</p>}
-
-            <input
-              type="text"
-              name="location"
-              placeholder="Locație"
-              value={newJob.location}
-              onChange={handleChange}
-            />
-            {errors.location && <p className="error-text">{errors.location}</p>}
-
-            <select name="jobType" value={newJob.jobType} onChange={handleChange}>
-              <option value="">Selectează tip job</option>
-              <option value="Full-time">Full-time</option>
-              <option value="Part-time">Part-time</option>
-              <option value="Remote">Remote</option>
-            </select>
-            {errors.jobType && <p className="error-text">{errors.jobType}</p>}
-
-            <select name="status" value={newJob.status} onChange={handleChange}>
-              <option value="">Selectează status</option>
-              <option value="Open">Open</option>
-              <option value="Closed">Closed</option>
-            </select>
-            {errors.status && <p className="error-text">{errors.status}</p>}
-
-            <div className="modal-buttons">
-              <button className="save-button" onClick={handleUpdateJob}>
-                Save Changes
-              </button>
-              <button className="cancel-button" onClick={() => setShowEditModal(false)}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
+        <JobModal
+          title="Edit Job"
+          data={newJob}
+          errors={errors}
+          handleChange={handleChange}
+          onSave={handleUpdateJob}
+          onCancel={() => setShowEditModal(false)}
+        />
       )}
 
-      {/* Tabel Jobs */}
+      {/* Table */}
       <div className="jobs-table-container">
         <table className="jobs-table">
           <thead>
@@ -221,35 +149,60 @@ const Jobs = () => {
             </tr>
           </thead>
           <tbody>
-            {jobsList
-              .filter((item) =>
-                Object.values(item)
-                  .join(" ")
-                  .toLowerCase()
-                  .includes(searchTerm.toLowerCase())
-              )
-              .map((item, index) => (
-                <tr key={index}>
-                  <td>{item.title}</td>
-                  <td>{item.department}</td>
-                  <td>{item.location}</td>
-                  <td>{item.jobType}</td>
-                  <td>{item.status}</td>
-                  <td className="action-buttons">
-                    <button className="edit-button" onClick={() => handleEdit(index)}>
-                      ✏️
-                    </button>
-                    <button className="delete-button" onClick={() => handleDelete(index)}>
-                      🗑️
-                    </button>
-                  </td>
-                </tr>
-              ))}
+            {filteredJobs.map((item) => (
+              <tr key={item.id}>
+                <td>{item.title}</td>
+                <td>{item.department}</td>
+                <td>{item.location}</td>
+                <td>{item.jobType}</td>
+                <td>{item.status}</td>
+                <td className="action-buttons">
+                  <button className="edit-button" onClick={() => handleEdit(item)}>✏️</button>
+                  <button className="delete-button" onClick={() => handleDelete(item.id)}>🗑️</button>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
     </div>
   );
 };
+
+const JobModal = ({ title, data, errors, handleChange, onSave, onCancel }) => (
+  <div className="modal-overlay">
+    <div className="modal-content">
+      <h2>{title}</h2>
+      <input type="text" name="title" placeholder="Titlu job" value={data.title} onChange={handleChange} />
+      {errors.title && <p className="error-text">{errors.title}</p>}
+
+      <input type="text" name="department" placeholder="Departament" value={data.department} onChange={handleChange} />
+      {errors.department && <p className="error-text">{errors.department}</p>}
+
+      <input type="text" name="location" placeholder="Locație" value={data.location} onChange={handleChange} />
+      {errors.location && <p className="error-text">{errors.location}</p>}
+
+      <select name="jobType" value={data.jobType} onChange={handleChange}>
+        <option value="">Selectează tip job</option>
+        <option value="Full-time">Full-time</option>
+        <option value="Part-time">Part-time</option>
+        <option value="Remote">Remote</option>
+      </select>
+      {errors.jobType && <p className="error-text">{errors.jobType}</p>}
+
+      <select name="status" value={data.status} onChange={handleChange}>
+        <option value="">Selectează status</option>
+        <option value="Open">Open</option>
+        <option value="Closed">Closed</option>
+      </select>
+      {errors.status && <p className="error-text">{errors.status}</p>}
+
+      <div className="modal-buttons">
+        <button className="save-button" onClick={onSave}>Save</button>
+        <button className="cancel-button" onClick={onCancel}>Cancel</button>
+      </div>
+    </div>
+  </div>
+);
 
 export default Jobs;

@@ -15,37 +15,37 @@ const Sidebar = () => {
         </li>
         <li>
           <Link to="/employees">
-            <FaUserFriends /> All Employees
+            <FaUserFriends /> Angajați
           </Link>
         </li>
         <li>
           <Link to="/departments">
-            <FaBuilding /> All Departments
+            <FaBuilding /> Departamente
           </Link>
         </li>
         <li>
           <Link to="/attendance">
-            <FaCalendarCheck /> Attendance
+            <FaCalendarCheck /> Prezența
           </Link>
         </li>
         <li>
           <Link to="/payroll">
-            <FaMoneyCheck /> Payroll
+            <FaMoneyCheck /> Salarizare
           </Link>
         </li>
         <li>
           <Link to="/jobs">
-            <FaBriefcase /> Jobs
+            <FaBriefcase /> Joburi
           </Link>
         </li>
         <li>
           <Link to="/candidates">
-            <FaUserTie /> Candidates
+            <FaUserTie /> Candidați
           </Link>
         </li>
         <li>
           <Link to="/leaves">
-            <FaCalendarCheck /> Leaves
+            <FaCalendarCheck /> Concedii
           </Link>
         </li>
         <li>
@@ -55,7 +55,7 @@ const Sidebar = () => {
         </li>
         <li>
           <Link to="/settings">
-            <FaCog /> Settings
+            <FaCog /> Setări
           </Link>
         </li>
       </ul>

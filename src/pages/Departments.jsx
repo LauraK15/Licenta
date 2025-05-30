@@ -1,14 +1,10 @@
-import React, { useState } from "react";
-import "../styles/Departments.css";
+import React, { useState, useEffect } from "react";
+import { db } from "../helper/firebaseConfig.js";
+import { collection, addDoc, updateDoc, doc, deleteDoc, getDocs, onSnapshot } from "firebase/firestore";
+import "../styles/Departments.css"; // Fișierul CSS pentru stiluri
 
 const Departments = () => {
-  const [departments, setDepartments] = useState([
-    { name: "Resurse Umane" },
-    { name: "IT" },
-    { name: "Marketing" },
-    { name: "Financiar" },
-  ]);
-
+  const [departments, setDepartments] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [newDepartment, setNewDepartment] = useState("");
@@ -16,47 +12,78 @@ const Departments = () => {
   const [editIndex, setEditIndex] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Citirea departamentelor din Firestore folosind onSnapshot (pentru actualizare în timp real)
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, "departments"), (snapshot) => {
+      const departmentList = snapshot.docs.map((doc) => ({
+        id: doc.id, // Adăugăm ID-ul documentului
+        ...doc.data(),
+      }));
+      setDepartments(departmentList); // Salvează datele în state-ul componentului
+    });
+
+    // Cleanup - se va opri ascultătorul când componenta este demontată
+    return () => unsubscribe();
+  }, []);
+
+  // Validarea formularului
   const validateForm = () => {
     const newErrors = {};
-
     if (!newDepartment.trim()) {
       newErrors.name = "Numele departamentului este obligatoriu.";
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleAddDepartment = () => {
+  // Adăugarea unui departament în Firestore
+  const handleAddDepartment = async () => {
     if (!validateForm()) return;
 
-    setDepartments([...departments, { name: newDepartment }]);
-    setNewDepartment("");
-    setErrors({});
-    setShowAddModal(false);
+    try {
+      const docRef = await addDoc(collection(db, "departments"), {
+        name: newDepartment,
+      });
+      console.log("Department added with ID: ", docRef.id);
+      setNewDepartment("");
+      setErrors({});
+      setShowAddModal(false);
+    } catch (e) {
+      console.error("Error adding department: ", e);
+    }
   };
 
-  const handleUpdateDepartment = () => {
+  // Actualizarea unui departament în Firestore
+  const handleUpdateDepartment = async () => {
     if (!validateForm()) return;
 
-    const updatedList = [...departments];
-    updatedList[editIndex] = { name: newDepartment };
-    setDepartments(updatedList);
+    const updatedDepartment = {
+      name: newDepartment,
+    };
+
+    const departmentDocRef = doc(db, "departments", editIndex); // Folosim ID-ul documentului
+    await updateDoc(departmentDocRef, updatedDepartment);
+    setDepartments(departments.map((dep) => (dep.id === editIndex ? updatedDepartment : dep)));
     setNewDepartment("");
     setErrors({});
     setShowEditModal(false);
   };
 
-  const handleDelete = (index) => {
-    const updatedList = [...departments];
-    updatedList.splice(index, 1);
-    setDepartments(updatedList);
+  // Ștergerea unui departament din Firestore
+  const handleDelete = async (id) => {
+    try {
+      const departmentDocRef = doc(db, "departments", id); // Folosim ID-ul documentului pentru ștergere
+      await deleteDoc(departmentDocRef);
+    } catch (e) {
+      console.error("Error deleting department: ", e);
+    }
   };
 
-  const handleEdit = (index) => {
-    setEditIndex(index);
-    setNewDepartment(departments[index].name);
-    setErrors({});
+  // Modificarea unui departament
+  const handleEdit = (id) => {
+    const department = departments.find((dep) => dep.id === id);
+    setEditIndex(id);
+    setNewDepartment(department.name);
     setShowEditModal(true);
   };
 
@@ -139,15 +166,17 @@ const Departments = () => {
           </thead>
           <tbody>
             {departments
-              .filter((dept) => dept.name.toLowerCase().includes(searchTerm.toLowerCase()))
-              .map((dept, index) => (
-                <tr key={index}>
+              .filter((dept) =>
+                dept.name && dept.name.toLowerCase().includes(searchTerm.toLowerCase())
+              )
+              .map((dept) => (
+                <tr key={dept.id}>
                   <td>{dept.name}</td>
                   <td className="action-buttons">
-                    <button className="edit-button" onClick={() => handleEdit(index)}>
+                    <button className="edit-button" onClick={() => handleEdit(dept.id)}>
                       ✏️
                     </button>
-                    <button className="delete-button" onClick={() => handleDelete(index)}>
+                    <button className="delete-button" onClick={() => handleDelete(dept.id)}>
                       🗑️
                     </button>
                   </td>

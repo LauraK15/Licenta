@@ -1,12 +1,17 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import {
+  collection,
+  getDocs,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+} from "firebase/firestore";
+import { db } from "../helper/firebaseConfig";
 import "../styles/Leaves.css";
 
 const Leaves = () => {
-  const [leavesList, setLeavesList] = useState([
-    { name: "Ion Popescu", type: "Concediu de odihnă", startDate: "2025-05-01", endDate: "2025-05-10", status: "Pending" },
-    { name: "Maria Ionescu", type: "Concediu medical", startDate: "2025-04-20", endDate: "2025-04-24", status: "Approved" },
-  ]);
-
+  const [leavesList, setLeavesList] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [newLeave, setNewLeave] = useState({
@@ -17,8 +22,19 @@ const Leaves = () => {
     status: "",
   });
   const [errors, setErrors] = useState({});
-  const [editIndex, setEditIndex] = useState(null);
+  const [editId, setEditId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+
+  const leavesCollection = collection(db, "leaves");
+
+  useEffect(() => {
+    const fetchLeaves = async () => {
+      const data = await getDocs(leavesCollection);
+      const formatted = data.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
+      setLeavesList(formatted);
+    };
+    fetchLeaves();
+  }, []);
 
   const validateForm = () => {
     const newErrors = {};
@@ -38,35 +54,38 @@ const Leaves = () => {
     setNewLeave({ ...newLeave, [e.target.name]: e.target.value });
   };
 
-  const handleAddLeave = () => {
+  const handleAddLeave = async () => {
     if (!validateForm()) return;
-
+    await addDoc(leavesCollection, newLeave);
     setLeavesList([...leavesList, newLeave]);
     setNewLeave({ name: "", type: "", startDate: "", endDate: "", status: "" });
     setErrors({});
     setShowAddModal(false);
   };
 
-  const handleUpdateLeave = () => {
+  const handleUpdateLeave = async () => {
     if (!validateForm()) return;
+    const leaveRef = doc(db, "leaves", editId);
+    await updateDoc(leaveRef, newLeave);
 
-    const updatedList = [...leavesList];
-    updatedList[editIndex] = newLeave;
+    const updatedList = leavesList.map((item) =>
+      item.id === editId ? { ...newLeave, id: editId } : item
+    );
     setLeavesList(updatedList);
     setNewLeave({ name: "", type: "", startDate: "", endDate: "", status: "" });
     setErrors({});
     setShowEditModal(false);
   };
 
-  const handleDelete = (index) => {
-    const updatedList = [...leavesList];
-    updatedList.splice(index, 1);
-    setLeavesList(updatedList);
+  const handleDelete = async (id) => {
+    const leaveRef = doc(db, "leaves", id);
+    await deleteDoc(leaveRef);
+    setLeavesList(leavesList.filter((item) => item.id !== id));
   };
 
-  const handleEdit = (index) => {
-    setEditIndex(index);
-    setNewLeave(leavesList[index]);
+  const handleEdit = (item) => {
+    setEditId(item.id);
+    setNewLeave(item);
     setErrors({});
     setShowEditModal(true);
   };
@@ -89,11 +108,11 @@ const Leaves = () => {
         </div>
       </div>
 
-      {/* Modal Add Leave */}
-      {showAddModal && (
+      {(showAddModal || showEditModal) && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <h2>Add Leave</h2>
+            <h2>{showAddModal ? "Add Leave" : "Edit Leave"}</h2>
+
             <input
               type="text"
               name="name"
@@ -137,10 +156,19 @@ const Leaves = () => {
             {errors.status && <p className="error-text">{errors.status}</p>}
 
             <div className="modal-buttons">
-              <button className="save-button" onClick={handleAddLeave}>
-                Save
+              <button
+                className="save-button"
+                onClick={showAddModal ? handleAddLeave : handleUpdateLeave}
+              >
+                {showAddModal ? "Save" : "Save Changes"}
               </button>
-              <button className="cancel-button" onClick={() => setShowAddModal(false)}>
+              <button
+                className="cancel-button"
+                onClick={() => {
+                  setShowAddModal(false);
+                  setShowEditModal(false);
+                }}
+              >
                 Cancel
               </button>
             </div>
@@ -148,66 +176,6 @@ const Leaves = () => {
         </div>
       )}
 
-      {/* Modal Edit Leave */}
-      {showEditModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h2>Edit Leave</h2>
-            <input
-              type="text"
-              name="name"
-              placeholder="Nume angajat"
-              value={newLeave.name}
-              onChange={handleChange}
-            />
-            {errors.name && <p className="error-text">{errors.name}</p>}
-
-            <input
-              type="text"
-              name="type"
-              placeholder="Tip concediu"
-              value={newLeave.type}
-              onChange={handleChange}
-            />
-            {errors.type && <p className="error-text">{errors.type}</p>}
-
-            <input
-              type="date"
-              name="startDate"
-              value={newLeave.startDate}
-              onChange={handleChange}
-            />
-            {errors.startDate && <p className="error-text">{errors.startDate}</p>}
-
-            <input
-              type="date"
-              name="endDate"
-              value={newLeave.endDate}
-              onChange={handleChange}
-            />
-            {errors.endDate && <p className="error-text">{errors.endDate}</p>}
-
-            <select name="status" value={newLeave.status} onChange={handleChange}>
-              <option value="">Selectează status</option>
-              <option value="Pending">Pending</option>
-              <option value="Approved">Approved</option>
-              <option value="Rejected">Rejected</option>
-            </select>
-            {errors.status && <p className="error-text">{errors.status}</p>}
-
-            <div className="modal-buttons">
-              <button className="save-button" onClick={handleUpdateLeave}>
-                Save Changes
-              </button>
-              <button className="cancel-button" onClick={() => setShowEditModal(false)}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Tabel Leaves */}
       <div className="leaves-table-container">
         <table className="leaves-table">
           <thead>
@@ -228,18 +196,18 @@ const Leaves = () => {
                   .toLowerCase()
                   .includes(searchTerm.toLowerCase())
               )
-              .map((item, index) => (
-                <tr key={index}>
+              .map((item) => (
+                <tr key={item.id}>
                   <td>{item.name}</td>
                   <td>{item.type}</td>
                   <td>{item.startDate}</td>
                   <td>{item.endDate}</td>
                   <td>{item.status}</td>
                   <td className="action-buttons">
-                    <button className="edit-button" onClick={() => handleEdit(index)}>
+                    <button className="edit-button" onClick={() => handleEdit(item)}>
                       ✏️
                     </button>
-                    <button className="delete-button" onClick={() => handleDelete(index)}>
+                    <button className="delete-button" onClick={() => handleDelete(item.id)}>
                       🗑️
                     </button>
                   </td>

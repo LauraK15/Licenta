@@ -1,14 +1,19 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import "../styles/Holidays.css";
+import { db } from "../helper/firebaseConfig";
+import {
+  collection,
+  getDocs,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+} from "firebase/firestore";
 
 const Holidays = () => {
-  const [holidaysList, setHolidaysList] = useState([
-    { name: "Ziua Muncii", date: "2025-05-01", description: "Sărbătoare legală" },
-    { name: "Crăciunul", date: "2025-12-25", description: "Sărbătoare de Crăciun" },
-  ]);
-
+  const [holidaysList, setHolidaysList] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [newHoliday, setNewHoliday] = useState({
@@ -17,14 +22,24 @@ const Holidays = () => {
     description: "",
   });
   const [errors, setErrors] = useState({});
-  const [editIndex, setEditIndex] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [editId, setEditId] = useState(null);
+
+  const fetchHolidays = async () => {
+    const snapshot = await getDocs(collection(db, "holidays"));
+    const data = snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
+    setHolidaysList(data);
+  };
+
+  useEffect(() => {
+    fetchHolidays();
+  }, []);
 
   const validateForm = () => {
     const newErrors = {};
     const { name, date, description } = newHoliday;
 
-    if (!name.trim()) newErrors.name = "Numele sărbătorii este obligatoriu.";
+    if (!name.trim()) newErrors.name = "Numele este obligatoriu.";
     if (!date.trim()) newErrors.date = "Data este obligatorie.";
     if (!description.trim()) newErrors.description = "Descrierea este obligatorie.";
 
@@ -36,51 +51,53 @@ const Holidays = () => {
     setNewHoliday({ ...newHoliday, [e.target.name]: e.target.value });
   };
 
-  const handleAddHoliday = () => {
+  const handleAddHoliday = async () => {
     if (!validateForm()) return;
 
-    setHolidaysList([...holidaysList, newHoliday]);
+    await addDoc(collection(db, "holidays"), newHoliday);
     setNewHoliday({ name: "", date: "", description: "" });
     setErrors({});
     setShowAddModal(false);
+    fetchHolidays();
   };
 
-  const handleUpdateHoliday = () => {
-    if (!validateForm()) return;
+  const handleUpdateHoliday = async () => {
+    if (!validateForm() || !editId) return;
 
-    const updatedList = [...holidaysList];
-    updatedList[editIndex] = newHoliday;
-    setHolidaysList(updatedList);
+    const ref = doc(db, "holidays", editId);
+    await updateDoc(ref, newHoliday);
     setNewHoliday({ name: "", date: "", description: "" });
     setErrors({});
     setShowEditModal(false);
+    fetchHolidays();
   };
 
-  const handleDelete = (index) => {
-    const updatedList = [...holidaysList];
-    updatedList.splice(index, 1);
-    setHolidaysList(updatedList);
+  const handleDelete = async (id) => {
+    await deleteDoc(doc(db, "holidays", id));
+    fetchHolidays();
   };
 
-  const handleEdit = (index) => {
-    setEditIndex(index);
-    setNewHoliday(holidaysList[index]);
-    setErrors({});
+  const handleEdit = (holiday) => {
+    setEditId(holiday.id);
+    setNewHoliday({
+      name: holiday.name,
+      date: holiday.date,
+      description: holiday.description,
+    });
     setShowEditModal(true);
   };
 
-  // FUNCȚIE FINALĂ corectă pentru evidențiere în Calendar:
   const tileClassName = ({ date, view }) => {
-    if (view === 'month') {
-      return holidaysList.some(holiday => {
-        const holidayDate = new Date(holiday.date);
+    if (view === "month") {
+      return holidaysList.some((holiday) => {
+        const d = new Date(holiday.date);
         return (
-          holidayDate.getFullYear() === date.getFullYear() &&
-          holidayDate.getMonth() === date.getMonth() &&
-          holidayDate.getDate() === date.getDate()
+          d.getFullYear() === date.getFullYear() &&
+          d.getMonth() === date.getMonth() &&
+          d.getDate() === date.getDate()
         );
       })
-        ? 'highlight'
+        ? "highlight"
         : null;
     }
   };
@@ -104,98 +121,51 @@ const Holidays = () => {
       </div>
 
       <div className="calendar-container">
-        <Calendar 
-          tileClassName={tileClassName}
-        />
+        <Calendar tileClassName={tileClassName} />
       </div>
 
-      {/* Modal Add Holiday */}
       {showAddModal && (
         <div className="modal-overlay">
           <div className="modal-content">
             <h2>Add Holiday</h2>
-            <input
-              type="text"
-              name="name"
-              placeholder="Nume sărbătoare"
-              value={newHoliday.name}
-              onChange={handleChange}
-            />
+            <input type="text" name="name" placeholder="Nume" value={newHoliday.name} onChange={handleChange} />
             {errors.name && <p className="error-text">{errors.name}</p>}
 
-            <input
-              type="date"
-              name="date"
-              value={newHoliday.date}
-              onChange={handleChange}
-            />
+            <input type="date" name="date" value={newHoliday.date} onChange={handleChange} />
             {errors.date && <p className="error-text">{errors.date}</p>}
 
-            <input
-              type="text"
-              name="description"
-              placeholder="Descriere"
-              value={newHoliday.description}
-              onChange={handleChange}
-            />
+            <input type="text" name="description" placeholder="Descriere" value={newHoliday.description} onChange={handleChange} />
             {errors.description && <p className="error-text">{errors.description}</p>}
 
             <div className="modal-buttons">
-              <button className="save-button" onClick={handleAddHoliday}>
-                Save
-              </button>
-              <button className="cancel-button" onClick={() => setShowAddModal(false)}>
-                Cancel
-              </button>
+              <button className="save-button" onClick={handleAddHoliday}>Save</button>
+              <button className="cancel-button" onClick={() => setShowAddModal(false)}>Cancel</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal Edit Holiday */}
       {showEditModal && (
         <div className="modal-overlay">
           <div className="modal-content">
             <h2>Edit Holiday</h2>
-            <input
-              type="text"
-              name="name"
-              placeholder="Nume sărbătoare"
-              value={newHoliday.name}
-              onChange={handleChange}
-            />
+            <input type="text" name="name" placeholder="Nume" value={newHoliday.name} onChange={handleChange} />
             {errors.name && <p className="error-text">{errors.name}</p>}
 
-            <input
-              type="date"
-              name="date"
-              value={newHoliday.date}
-              onChange={handleChange}
-            />
+            <input type="date" name="date" value={newHoliday.date} onChange={handleChange} />
             {errors.date && <p className="error-text">{errors.date}</p>}
 
-            <input
-              type="text"
-              name="description"
-              placeholder="Descriere"
-              value={newHoliday.description}
-              onChange={handleChange}
-            />
+            <input type="text" name="description" placeholder="Descriere" value={newHoliday.description} onChange={handleChange} />
             {errors.description && <p className="error-text">{errors.description}</p>}
 
             <div className="modal-buttons">
-              <button className="save-button" onClick={handleUpdateHoliday}>
-                Save Changes
-              </button>
-              <button className="cancel-button" onClick={() => setShowEditModal(false)}>
-                Cancel
-              </button>
+              <button className="save-button" onClick={handleUpdateHoliday}>Save Changes</button>
+              <button className="cancel-button" onClick={() => setShowEditModal(false)}>Cancel</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Tabel Holidays */}
       <div className="holidays-table-container">
         <table className="holidays-table">
           <thead>
@@ -209,23 +179,16 @@ const Holidays = () => {
           <tbody>
             {holidaysList
               .filter((item) =>
-                Object.values(item)
-                  .join(" ")
-                  .toLowerCase()
-                  .includes(searchTerm.toLowerCase())
+                Object.values(item).join(" ").toLowerCase().includes(searchTerm.toLowerCase())
               )
-              .map((item, index) => (
-                <tr key={index}>
+              .map((item) => (
+                <tr key={item.id}>
                   <td>{item.name}</td>
                   <td>{item.date}</td>
                   <td>{item.description}</td>
                   <td className="action-buttons">
-                    <button className="edit-button" onClick={() => handleEdit(index)}>
-                      ✏️
-                    </button>
-                    <button className="delete-button" onClick={() => handleDelete(index)}>
-                      🗑️
-                    </button>
+                    <button className="edit-button" onClick={() => handleEdit(item)}>✏️</button>
+                    <button className="delete-button" onClick={() => handleDelete(item.id)}>🗑️</button>
                   </td>
                 </tr>
               ))}

@@ -1,31 +1,97 @@
-import React from 'react';
-import '../styles/Dashboard.css'; 
+import React, { useEffect, useState } from "react";
+import {
+  collection,
+  getDocs
+} from "firebase/firestore";
+import { db } from "../helper/firebaseConfig";
 import { FaUserFriends, FaUserTie, FaBriefcase, FaUmbrellaBeach } from 'react-icons/fa';
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  Legend,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid
+} from "recharts";
+import "../styles/Dashboard.css";
+
+const COLORS = ["#28a745", "#dc3545", "#ffc107", "#007bff"];
 
 const Dashboard = () => {
-  const employeeStats = [
-    { icon: <FaUserFriends className="stat-icon" />, title: "Angajați", number: 24 },
-    { icon: <FaUserTie className="stat-icon" />, title: "Candidați", number: 8 },
-    { icon: <FaBriefcase className="stat-icon" />, title: "Joburi active", number: 5 },
-    { icon: <FaUmbrellaBeach className="stat-icon" />, title: "Concedii", number: 3 },
-  ];
+  const [employeeCount, setEmployeeCount] = useState(0);
+  const [candidateCount, setCandidateCount] = useState(0);
+  const [leaveCount, setLeaveCount] = useState(0);
+  const [attendanceStats, setAttendanceStats] = useState([]);
+  const [lineChartData, setLineChartData] = useState([]);
 
-  const employeeGrowthData = [
-    { month: "Ian", employees: 5 },
-    { month: "Feb", employees: 10 },
-    { month: "Mar", employees: 15 },
-    { month: "Apr", employees: 24 },
-  ];
+  useEffect(() => {
+    const fetchCounts = async () => {
+      const emp = await getDocs(collection(db, "employees"));
+      const cand = await getDocs(collection(db, "candidates"));
+      const leaves = await getDocs(collection(db, "leaves"));
+      setEmployeeCount(emp.size);
+      setCandidateCount(cand.size);
+      setLeaveCount(leaves.size);
+    };
 
-  const attendanceStats = [
-    { name: "Prezent", value: 18 },
-    { name: "Absent", value: 3 },
-    { name: "Zi liberă", value: 3 },
-  ];
+    const fetchAttendanceStats = async () => {
+      const snapshot = await getDocs(collection(db, "attendance"));
+      const types = {
+        prezent: 0,
+        absentNemotivat: 0,
+        absentMotivat: 0,
+        ziLibera: 0,
+      };
 
-  const COLORS = ["#28a745", "#dc3545", "#007bff"];
+      const monthsMap = {};
+
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        for (let key in types) {
+          if (data[key]) {
+            types[key] += data[key].length;
+
+            // Pentru LineChart - grupare după lună
+            data[key].forEach(dateStr => {
+              const month = dateStr.slice(0, 7); // ex: "2025-03"
+              if (!monthsMap[month]) monthsMap[month] = 0;
+              if (key === "prezent") monthsMap[month]++;
+            });
+          }
+        }
+      });
+
+      setAttendanceStats([
+        { name: "Prezent", value: types.prezent },
+        { name: "Absent nemotivat", value: types.absentNemotivat },
+        { name: "Absent motivat", value: types.absentMotivat },
+        { name: "Zi liberă", value: types.ziLibera },
+      ]);
+
+      // Convertim în array sortat pentru LineChart
+      const chartData = Object.entries(monthsMap)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([month, count]) => ({ month, employees: count }));
+      setLineChartData(chartData);
+    };
+
+    fetchCounts();
+    fetchAttendanceStats();
+  }, []);
+
   const totalDays = attendanceStats.reduce((acc, cur) => acc + cur.value, 0);
+
+  const employeeStats = [
+    { icon: <FaUserFriends className="stat-icon" />, title: "Angajați", number: employeeCount },
+    { icon: <FaUserTie className="stat-icon" />, title: "Candidați", number: candidateCount },
+    { icon: <FaBriefcase className="stat-icon" />, title: "Joburi active", number: 5 },
+    { icon: <FaUmbrellaBeach className="stat-icon" />, title: "Concedii", number: leaveCount },
+  ];
 
   return (
     <div className="dashboard">
@@ -51,9 +117,9 @@ const Dashboard = () => {
       </div>
 
       <div className="card" style={{ marginTop: "2rem" }}>
-        <h2 className="card-title">Evoluția angajaților</h2>
+        <h2 className="card-title">Evoluția prezenței</h2>
         <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={employeeGrowthData}>
+          <LineChart data={lineChartData}>
             <Line type="monotone" dataKey="employees" stroke="#4dabf7" strokeWidth={2} />
             <CartesianGrid stroke="#e0e0e0" />
             <XAxis dataKey="month" />

@@ -1,24 +1,19 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import "../styles/Attendance.css";
+import { db } from "../helper/firebaseConfig";
+
+import {
+  collection,
+  getDocs,
+  getDoc,
+  setDoc,
+  doc
+} from "firebase/firestore";
 
 const Attendance = () => {
-  const [employees, setEmployees] = useState([
-    {
-      name: "Ion Popescu",
-      attendance: ["2025-05-01", "2025-05-03"],
-      absence: ["2025-05-04"],
-      freeDays: ["2025-05-06"]
-    },
-    {
-      name: "Maria Ionescu",
-      attendance: ["2025-05-02", "2025-05-03"],
-      absence: ["2025-05-05"],
-      freeDays: []
-    }
-  ]);
-
+  const [employees, setEmployees] = useState([]);
   const [newName, setNewName] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedEmployeeIndex, setSelectedEmployeeIndex] = useState(null);
@@ -33,59 +28,112 @@ const Attendance = () => {
 
   const tileClassName = (date, employee) => {
     const formatted = formatDate(date);
-    if (employee.attendance.includes(formatted)) return "present";
-    if (employee.absence.includes(formatted)) return "absent";
-    if (employee.freeDays.includes(formatted)) return "free";
+    if (employee.prezent?.includes(formatted)) return "present";
+    if (employee.absentNemotivat?.includes(formatted)) return "absent";
+    if (employee.absentMotivat?.includes(formatted)) return "motivated-absence";
+    if (employee.ziLibera?.includes(formatted)) return "free";
     return null;
   };
 
-  const handleAddEmployee = () => {
-    if (!newName.trim()) return;
+  const fetchEmployees = async () => {
+    const snapshot = await getDocs(collection(db, "attendance"));
+    const data = snapshot.docs.map((doc) => {
+      const d = doc.data();
+      return {
+        id: doc.id,
+        name: d.name || "Fără nume",
+        prezent: d.prezent || [],
+        absentNemotivat: d.absentNemotivat || [],
+        absentMotivat: d.absentMotivat || [],
+        ziLibera: d.ziLibera || [],
+      };
+    });
+    setEmployees(data);
+  };
+
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
+
+  const saveToFirestore = async (employee) => {
+    const ref = doc(db, "attendance", employee.name);
+    await setDoc(ref, employee);
+  };
+
+  const handleAddEmployee = async () => {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+
+    const docRef = doc(db, "attendance", trimmed);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      alert("Angajatul există deja.");
+      return;
+    }
+
     const newEmployee = {
-      name: newName.trim(),
-      attendance: [],
-      absence: [],
-      freeDays: []
+      name: trimmed,
+      prezent: [],
+      absentNemotivat: [],
+      absentMotivat: [],
+      ziLibera: [],
     };
-    setEmployees(prev => [...prev, newEmployee]);
+
+    await saveToFirestore(newEmployee);
+    setEmployees((prev) => [...prev, { ...newEmployee, id: trimmed }]);
     setNewName("");
   };
 
-  const handleAddDate = (index, type) => {
-    const date = prompt(`Introduceți data (${type}) în format YYYY-MM-DD:`);
-    if (!date) return;
-    const updated = [...employees];
-    if (!updated[index][type].includes(date)) {
-      updated[index][type].push(date);
+  const handleAddDate = async (index, type) => {
+    const dateInput = prompt("Introduceți data (YYYY-MM-DD):");
+    if (!dateInput) return;
+
+    const date = new Date(dateInput);
+    if (isNaN(date)) {
+      alert("Dată invalidă.");
+      return;
     }
+
+    const formatted = formatDate(date);
+    const updated = [...employees];
+    const emp = updated[index];
+
+    ["prezent", "absentNemotivat", "absentMotivat", "ziLibera"].forEach((t) => {
+      emp[t] = emp[t]?.filter((d) => d !== formatted);
+    });
+
+    emp[type].push(formatted);
+
+    await saveToFirestore(emp);
     setEmployees(updated);
   };
 
-  const handleDayClick = (date, employeeIndex) => {
+  const handleDayClick = (date, index) => {
     setSelectedDate(date);
-    setSelectedEmployeeIndex(employeeIndex);
+    setSelectedEmployeeIndex(index);
     setShowTypeSelector(true);
   };
 
-  const handleSelectType = (type) => {
+  const handleSelectType = async (type) => {
+    if (!selectedDate || selectedEmployeeIndex === null) return;
+
     const formatted = formatDate(selectedDate);
     const updated = [...employees];
-    const types = ["attendance", "absence", "freeDays"];
+    const emp = updated[selectedEmployeeIndex];
 
-    types.forEach(t => {
-      updated[selectedEmployeeIndex][t] = updated[selectedEmployeeIndex][t].filter(d => d !== formatted);
+    ["prezent", "absentNemotivat", "absentMotivat", "ziLibera"].forEach((t) => {
+      emp[t] = emp[t]?.filter((d) => d !== formatted);
     });
 
-    if (type === "attendance") updated[selectedEmployeeIndex].attendance.push(formatted);
-    if (type === "absence") updated[selectedEmployeeIndex].absence.push(formatted);
-    if (type === "freeDays") updated[selectedEmployeeIndex].freeDays.push(formatted);
+    emp[type].push(formatted);
 
+    await saveToFirestore(emp);
     setEmployees(updated);
     setShowTypeSelector(false);
   };
 
   const filteredEmployees = employees.filter((emp) =>
-    emp.name.toLowerCase().includes(searchTerm.toLowerCase())
+    emp.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -113,15 +161,16 @@ const Attendance = () => {
           <div key={index} className="employee-card">
             <h2>{employee.name}</h2>
             <Calendar
-              onClickDay={(date) => handleDayClick(date, employees.indexOf(employee))}
+              onClickDay={(date) => handleDayClick(date, index)}
               tileClassName={({ date, view }) =>
                 view === "month" ? tileClassName(date, employee) : null
               }
             />
             <div className="btn-group">
-              <button onClick={() => handleAddDate(employees.indexOf(employee), "attendance")}>+ Prezent</button>
-              <button onClick={() => handleAddDate(employees.indexOf(employee), "absence")}>+ Absent</button>
-              <button onClick={() => handleAddDate(employees.indexOf(employee), "freeDays")}>+ Zi Liberă</button>
+              <button onClick={() => handleAddDate(index, "prezent")}>+ Prezent</button>
+              <button onClick={() => handleAddDate(index, "absentNemotivat")}>+ Absență nemotivată</button>
+              <button onClick={() => handleAddDate(index, "ziLibera")}>+ Zi Liberă</button>
+              <button onClick={() => handleAddDate(index, "absentMotivat")}>+ Absență motivată</button>
             </div>
           </div>
         ))}
@@ -132,9 +181,10 @@ const Attendance = () => {
           <div className="modal-content">
             <h2>Selectează tipul pentru {formatDate(selectedDate)}</h2>
             <div className="modal-buttons">
-              <button onClick={() => handleSelectType("attendance")}>Prezent</button>
-              <button onClick={() => handleSelectType("absence")}>Absent</button>
-              <button onClick={() => handleSelectType("freeDays")}>Zi Liberă</button>
+              <button className="present-button" onClick={() => handleSelectType("prezent")}>Prezent</button>
+              <button className="absent-button" onClick={() => handleSelectType("absentNemotivat")}>Absență nemotivată</button>
+              <button className="free-button" onClick={() => handleSelectType("ziLibera")}>Zi Liberă</button>
+              <button className="motivated-absence-button" onClick={() => handleSelectType("absentMotivat")}>Absență motivată</button>
               <button className="cancel-button" onClick={() => setShowTypeSelector(false)}>Anulează</button>
             </div>
           </div>

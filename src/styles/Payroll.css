@@ -1,5 +1,4 @@
-/* Payroll General Layout */
-.payroll-page {
+* Payroll General Layout */ .payroll-page {
  padding: 2rem;
  background: linear-gradient(to bottom right, #eaf3ff, #f9fbfc);
  min-height: 100vh;
