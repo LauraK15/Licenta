@@ -90,7 +90,7 @@ const Departments = () => {
   return (
     <div className="departments-page">
       <div className="departments-header">
-        <h1>All Departments</h1>
+        <h1>Departamente</h1>
         <div className="header-actions">
           <input
             type="text"

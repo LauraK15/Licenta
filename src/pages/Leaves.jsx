@@ -93,7 +93,7 @@ const Leaves = () => {
   return (
     <div className="leaves-page">
       <div className="leaves-header">
-        <h1>Leaves</h1>
+        <h1>Concedii</h1>
         <div className="header-actions">
           <input
             type="text"

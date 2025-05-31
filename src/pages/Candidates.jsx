@@ -89,7 +89,7 @@ const Candidates = () => {
   return (
     <div className="candidates-page">
       <div className="candidates-header">
-        <h1>Candidates</h1>
+        <h1>Candidați</h1>
         <div className="header-actions">
           <input
             type="text"

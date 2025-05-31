@@ -12,6 +12,7 @@ import Candidates from '../../pages/Candidates';
 import Leaves from '../../pages/Leaves';
 import Holidays from '../../pages/Holidays';
 import Settings from '../../pages/Settings';
+import Deplasari from '../../pages/Deplasari';
 
 
 const MainLayout = () => {
@@ -30,6 +31,7 @@ const MainLayout = () => {
           <Route path="/leaves" element={<Leaves />} />
           <Route path="/holidays" element={<Holidays />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/deplasari" element={<Deplasari/>} />
         </Routes>
       </div>
     </div>

@@ -1,11 +1,15 @@
 .main-layout {
  display: flex;
  width: 100%;
+ margin: 0;
+ padding: 0;
 }
 
 .main-content {
  flex: 1;
- padding: 20px;
- background-color: #f4f6fa;
+ padding: 0;
+ /* eliminăm spațiul lateral */
+ background: linear-gradient(to bottom right, #eaf3ff, #f9fbfc);
+ /* ca la pagini */
  min-height: 100vh;
 }

@@ -122,7 +122,7 @@ const Employees = () => {
     <div className="employees-page">
       <Toaster position="top-right" />
       <div className="employees-header">
-        <h1>All Employees</h1>
+        <h1>Angajați</h1>
         <div className="header-actions">
           <input
             type="text"

@@ -3,6 +3,7 @@ import { initializeApp } from "firebase/app";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 import { getFirestore } from "firebase/firestore"; // Importăm Firestore
+import { getAuth } from "firebase/auth";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -14,10 +15,8 @@ const firebaseConfig = {
   appId: "1:894926824929:web:59baab7899f9cff1af9ea0"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-
-// Crearea instanței Firestore
 const db = getFirestore(app);
+const auth = getAuth(app);
 
-export { db };
+export { db, auth };

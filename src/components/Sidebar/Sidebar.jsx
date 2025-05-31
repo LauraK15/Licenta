@@ -1,7 +1,7 @@
 import React from 'react';
 import './Sidebar.css';
 import { Link } from 'react-router-dom';
-import { FaUserFriends, FaBuilding, FaCalendarCheck, FaMoneyCheck, FaBriefcase, FaUserTie, FaUmbrellaBeach, FaCog, FaHome } from 'react-icons/fa';
+import { FaUserFriends, FaBuilding, FaCalendarCheck, FaMoneyCheck, FaBriefcase, FaUserTie, FaUmbrellaBeach, FaCog, FaHome, FaCarSide } from 'react-icons/fa';
 
 const Sidebar = () => {
   return (
@@ -51,6 +51,11 @@ const Sidebar = () => {
         <li>
           <Link to="/holidays">
             <FaUmbrellaBeach /> Holidays
+          </Link>
+        </li>
+        <li>
+          <Link to="/deplasari">
+          <FaCarSide /> Deplasari
           </Link>
         </li>
         <li>

@@ -113,7 +113,7 @@ const Payroll = () => {
   return (
     <div className="payroll-page">
       <div className="payroll-header">
-        <h1>Payroll</h1>
+        <h1>Salarizare</h1>
         <div className="header-actions">
           <input
             type="text"

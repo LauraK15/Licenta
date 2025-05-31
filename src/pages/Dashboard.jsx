@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
 import {
   collection,
-  getDocs
+  getDocs,
+  onSnapshot
 } from "firebase/firestore";
 import { db } from "../helper/firebaseConfig";
-import { FaUserFriends, FaUserTie, FaBriefcase, FaUmbrellaBeach } from 'react-icons/fa';
+import { FaUserFriends, FaUserTie, FaBriefcase, FaUmbrellaBeach, FaCarSide } from 'react-icons/fa';
 import {
   ResponsiveContainer,
   PieChart,
@@ -26,6 +27,8 @@ const Dashboard = () => {
   const [employeeCount, setEmployeeCount] = useState(0);
   const [candidateCount, setCandidateCount] = useState(0);
   const [leaveCount, setLeaveCount] = useState(0);
+  const [jobCount, setJobCount] = useState(0);
+  const [tripCount, setTripCount] = useState(0);
   const [attendanceStats, setAttendanceStats] = useState([]);
   const [lineChartData, setLineChartData] = useState([]);
 
@@ -56,9 +59,8 @@ const Dashboard = () => {
           if (data[key]) {
             types[key] += data[key].length;
 
-            // Pentru LineChart - grupare după lună
             data[key].forEach(dateStr => {
-              const month = dateStr.slice(0, 7); // ex: "2025-03"
+              const month = dateStr.slice(0, 7);
               if (!monthsMap[month]) monthsMap[month] = 0;
               if (key === "prezent") monthsMap[month]++;
             });
@@ -73,15 +75,28 @@ const Dashboard = () => {
         { name: "Zi liberă", value: types.ziLibera },
       ]);
 
-      // Convertim în array sortat pentru LineChart
       const chartData = Object.entries(monthsMap)
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([month, count]) => ({ month, employees: count }));
       setLineChartData(chartData);
     };
 
+    const unsubscribeJobs = onSnapshot(collection(db, "jobs"), (snapshot) => {
+      const activeJobs = snapshot.docs.filter(doc => doc.data().status === "Open");
+      setJobCount(activeJobs.length);
+    });
+
+    const unsubscribeTrips = onSnapshot(collection(db, "deplasari"), (snapshot) => {
+      setTripCount(snapshot.size);
+    });
+
     fetchCounts();
     fetchAttendanceStats();
+
+    return () => {
+      unsubscribeJobs();
+      unsubscribeTrips();
+    };
   }, []);
 
   const totalDays = attendanceStats.reduce((acc, cur) => acc + cur.value, 0);
@@ -89,14 +104,15 @@ const Dashboard = () => {
   const employeeStats = [
     { icon: <FaUserFriends className="stat-icon" />, title: "Angajați", number: employeeCount },
     { icon: <FaUserTie className="stat-icon" />, title: "Candidați", number: candidateCount },
-    { icon: <FaBriefcase className="stat-icon" />, title: "Joburi active", number: 5 },
+    { icon: <FaBriefcase className="stat-icon" />, title: "Joburi active", number: jobCount },
     { icon: <FaUmbrellaBeach className="stat-icon" />, title: "Concedii", number: leaveCount },
+    { icon: <FaCarSide className="stat-icon" />, title: "Deplasări", number: tripCount },
   ];
 
   return (
     <div className="dashboard">
       <div className="welcome-banner card">
-        <h2>👋 Bine ai revenit, <span className="username">Laura</span>!</h2>
+        <h2>👋 Bine ai revenit <span className="username"></span>!</h2>
         <p>Sperăm că ai o zi productivă! 🧑‍💻</p>
       </div>
 

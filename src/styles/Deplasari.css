@@ -1,5 +1,5 @@
-/* Payroll General Layout */
-.payroll-page {
+/* Deplasari General Layout */
+.deplasari-page {
  padding: 2rem;
  background: linear-gradient(to bottom right, #eaf3ff, #f9fbfc);
  min-height: 100vh;
@@ -7,20 +7,20 @@
 }
 
 /* Header */
-.payroll-header {
+.deplasari-header {
  display: flex;
  flex-direction: column;
  gap: 1rem;
  margin-bottom: 2rem;
 }
 
-.payroll-header h1 {
+.deplasari-header h1 {
  font-size: 2rem;
  color: #003366;
  margin: 0;
 }
 
-/* Search & Add Payroll */
+/* Search & Add Deplasare */
 .header-actions {
  display: flex;
  justify-content: space-between;
@@ -64,7 +64,7 @@
 }
 
 /* Table */
-.payroll-table-container {
+.deplasari-table-container {
  overflow-x: auto;
  background: #ffffff;
  padding: 1rem;
@@ -72,46 +72,45 @@
  box-shadow: 0 4px 24px rgba(0, 45, 98, 0.1);
 }
 
-.payroll-table {
+.deplasari-table {
  width: 100%;
  border-collapse: collapse;
- min-width: 800px;
+ min-width: 400px;
 }
 
-.payroll-table thead {
+.deplasari-table thead {
  background: #f0f7ff;
 }
 
-.payroll-table th,
-.payroll-table td {
- text-align: center;
+.deplasari-table th,
+.deplasari-table td {
+ text-align: left;
  padding: 1rem;
  font-size: 0.95rem;
 }
 
-.payroll-table th {
+.deplasari-table th {
  color: #003366;
  font-weight: 600;
  border-bottom: 2px solid #c6dbf5;
 }
 
-.payroll-table td {
+.deplasari-table td {
  color: #333;
  border-bottom: 1px solid #e0e0e0;
 }
 
-.payroll-table tbody tr:hover {
+.deplasari-table tbody tr:hover {
  background-color: #f5faff;
 }
 
-.payroll-table tbody tr:nth-child(even) {
+.deplasari-table tbody tr:nth-child(even) {
  background-color: #fcfdff;
 }
 
 /* Action Buttons */
 .action-buttons {
  display: flex;
- justify-content: center;
  gap: 8px;
 }
 
@@ -172,21 +171,14 @@
  color: #003366;
 }
 
-.modal-content input,
-.modal-content select {
+.modal-content input {
  padding: 0.75rem 1rem;
  border: 1px solid #ccc;
  border-radius: 8px;
  font-size: 1rem;
 }
 
-.modal-content input[disabled] {
- background-color: #f4f4f4;
- color: #666;
-}
-
-.modal-content input:focus,
-.modal-content select:focus {
+.modal-content input:focus {
  outline: none;
  border-color: #3399ff;
  box-shadow: 0 0 5px rgba(51, 153, 255, 0.5);

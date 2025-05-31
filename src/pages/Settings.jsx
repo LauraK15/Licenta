@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import "../styles/Settings.css";
+import { useAuth } from "../helper/authContext"; // 🔹 importă contextul
 
 const Settings = () => {
+  const { logout } = useAuth(); // 🔹 accesează funcția logout
   const [formData, setFormData] = useState({
-    companyName: "HRTech Solutions",
-    email: "contact@hrtech.com",
+    companyName: "HRM",
+    email: "contact@hrm.com",
     timezone: "Europe/Bucharest",
   });
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -23,9 +25,8 @@ const Settings = () => {
   };
 
   const confirmLogout = () => {
-    alert("Ai fost delogat.");
     setShowLogoutModal(false);
-    // logica reală: ex: firebase.auth().signOut();
+    logout(); // 🔹 delogare reală cu Firebase + redirect
   };
 
   return (

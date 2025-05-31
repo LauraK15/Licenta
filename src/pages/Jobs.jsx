@@ -96,7 +96,7 @@ const Jobs = () => {
   return (
     <div className="jobs-page">
       <div className="jobs-header">
-        <h1>Jobs</h1>
+        <h1>Joburi</h1>
         <div className="header-actions">
           <input
             type="text"

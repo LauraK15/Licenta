@@ -138,7 +138,7 @@ const Attendance = () => {
 
   return (
     <div className="attendance-page">
-      <h1>Attendance</h1>
+      <h1>Prezența</h1>
 
       <div className="controls-bar">
         <input
