@@ -50,12 +50,12 @@ const Sidebar = () => {
         </li>
         <li>
           <Link to="/holidays">
-            <FaUmbrellaBeach /> Holidays
+            <FaUmbrellaBeach /> Zile libere
           </Link>
         </li>
         <li>
           <Link to="/deplasari">
-          <FaCarSide /> Deplasari
+          <FaCarSide /> Deplasări
           </Link>
         </li>
         <li>

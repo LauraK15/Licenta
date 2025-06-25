@@ -105,7 +105,7 @@ const Holidays = () => {
   return (
     <div className="holidays-page">
       <div className="holidays-header">
-        <h1>Holidays</h1>
+        <h1>Zile libere</h1>
         <div className="header-actions">
           <input
             type="text"
@@ -115,7 +115,7 @@ const Holidays = () => {
             className="search-input"
           />
           <button className="add-button" onClick={() => setShowAddModal(true)}>
-            + Add Holiday
+            + Add
           </button>
         </div>
       </div>
@@ -127,7 +127,7 @@ const Holidays = () => {
       {showAddModal && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <h2>Add Holiday</h2>
+            <h2>Add</h2>
             <input type="text" name="name" placeholder="Nume" value={newHoliday.name} onChange={handleChange} />
             {errors.name && <p className="error-text">{errors.name}</p>}
 

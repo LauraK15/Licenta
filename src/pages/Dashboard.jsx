@@ -133,17 +133,22 @@ const Dashboard = () => {
       </div>
 
       <div className="card" style={{ marginTop: "2rem" }}>
-        <h2 className="card-title">Evoluția prezenței</h2>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={lineChartData}>
-            <Line type="monotone" dataKey="employees" stroke="#4dabf7" strokeWidth={2} />
-            <CartesianGrid stroke="#e0e0e0" />
-            <XAxis dataKey="month" />
-            <YAxis />
-            <Tooltip />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+  <h2 className="card-title">Evoluția prezenței angajaților pe luni</h2>
+  <ResponsiveContainer width="100%" height={300}>
+    <LineChart data={lineChartData}>
+      <Line type="monotone" dataKey="employees" stroke="#4dabf7" strokeWidth={2} />
+      <CartesianGrid stroke="#e0e0e0" />
+      <XAxis dataKey="month" />
+      <YAxis 
+        domain={[1, 'auto']} 
+        tickFormatter={(tick) => Number.isInteger(tick) ? tick : ''} 
+        allowDecimals={false} 
+      />
+      <Tooltip />
+    </LineChart>
+  </ResponsiveContainer>
+</div>
+
 
       <div className="card attendance-chart-section">
         <h2>Prezență generală</h2>
