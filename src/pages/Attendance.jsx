@@ -147,7 +147,7 @@ const Attendance = () => {
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
         />
-        <button onClick={handleAddEmployee}>+ Add Employee</button>
+        <button onClick={handleAddEmployee}>+ Add </button>
         <input
           type="text"
           placeholder="Caută angajat..."

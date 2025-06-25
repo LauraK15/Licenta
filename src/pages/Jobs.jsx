@@ -106,7 +106,7 @@ const Jobs = () => {
             className="search-input"
           />
           <button className="add-button" onClick={() => setShowAddModal(true)}>
-            + Add Job Posting
+            + Add 
           </button>
         </div>
       </div>

@@ -123,7 +123,7 @@ const Payroll = () => {
             className="search-input"
           />
           <button className="add-button" onClick={() => setShowAddModal(true)}>
-            + Add Payroll Record
+            + Add 
           </button>
         </div>
       </div>

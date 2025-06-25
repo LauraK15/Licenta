@@ -103,7 +103,7 @@ const Leaves = () => {
             className="search-input"
           />
           <button className="add-button" onClick={() => setShowAddModal(true)}>
-            + Add Leave Request
+            + Add 
           </button>
         </div>
       </div>

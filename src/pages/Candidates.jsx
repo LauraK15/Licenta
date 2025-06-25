@@ -99,7 +99,7 @@ const Candidates = () => {
             className="search-input"
           />
           <button className="add-button" onClick={() => setShowAddModal(true)}>
-            + Add Candidate
+            + Add 
           </button>
         </div>
       </div>

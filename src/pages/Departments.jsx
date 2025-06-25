@@ -100,7 +100,7 @@ const Departments = () => {
             className="search-input"
           />
           <button className="add-button" onClick={() => setShowAddModal(true)}>
-            + Add Department
+            + Add 
           </button>
         </div>
       </div>

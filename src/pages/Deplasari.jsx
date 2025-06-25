@@ -94,7 +94,7 @@ const Deplasari = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="search-input"
           />
-          <button className="add-button" onClick={() => setShowAddModal(true)}>+ Adaugă deplasare</button>
+          <button className="add-button" onClick={() => setShowAddModal(true)}>+ Add</button>
         </div>
       </div>
 
